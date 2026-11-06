@@ -1,6 +1,6 @@
 import sqlite3
 
-from Banco.conector_do_banco import obter_conexao
+from Banco.conector_do_banco import gerar_id_aleatorio, obter_conexao
 from Classes.Peca import Peca
 
 
@@ -12,7 +12,7 @@ class PecaDAO:
                 """
                 SELECT id, manutencao_id, nome, codigo, quantidade, valor_unitario
                 FROM PecasReposicao
-                ORDER BY nome
+                ORDER BY id ASC
                 """
             ).fetchall()
             return [Peca(*linha) for linha in linhas]
@@ -36,13 +36,16 @@ class PecaDAO:
     def inserir(self, peca):
         conexao = obter_conexao()
         try:
+            conexao.execute("BEGIN IMMEDIATE")
+            id_peca = gerar_id_aleatorio(conexao, "PecasReposicao")
             cursor = conexao.execute(
                 """
                 INSERT INTO PecasReposicao (
-                    manutencao_id, nome, codigo, quantidade, valor_unitario
-                ) VALUES (?, ?, ?, ?, ?)
+                    id, manutencao_id, nome, codigo, quantidade, valor_unitario
+                ) VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    id_peca,
                     peca.manutencao_id,
                     peca.nome,
                     peca.codigo,
@@ -51,7 +54,7 @@ class PecaDAO:
                 ),
             )
             conexao.commit()
-            peca.id = cursor.lastrowid
+            peca.id = id_peca
             return peca.id
         except sqlite3.Error:
             conexao.rollback()

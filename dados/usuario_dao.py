@@ -3,7 +3,7 @@ import hmac
 import secrets
 import sqlite3
 
-from Banco.conector_do_banco import obter_conexao
+from Banco.conector_do_banco import gerar_id_aleatorio, obter_conexao
 
 class UsuarioDAO:
     def criar(self, nome: str, email: str, senha):
@@ -14,14 +14,17 @@ class UsuarioDAO:
 
         conexao = obter_conexao()
         try:
+            conexao.execute("BEGIN IMMEDIATE")
+            id_usuario = gerar_id_aleatorio(conexao, "Usuarios")
             conexao.execute(
                 """
-                INSERT INTO Usuarios (nome, email, senha_salt, senha_hash)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO Usuarios (id, nome, email, senha_salt, senha_hash)
+                VALUES (?, ?, ?, ?, ?)
                 """,
-                (nome, email, salt.hex(), senha_hash.hex()),
+                (id_usuario, nome, email, salt.hex(), senha_hash.hex()),
             )
             conexao.commit()
+            return id_usuario
         except sqlite3.Error:
             conexao.rollback()
             raise
@@ -56,7 +59,35 @@ class UsuarioDAO:
         conexao = obter_conexao()
         try:
             return conexao.execute(
-                "SELECT id, nome, email FROM Usuarios ORDER BY nome COLLATE NOCASE"
+                "SELECT id, nome, email FROM Usuarios ORDER BY id ASC"
             ).fetchall()
+        finally:
+            conexao.close()
+
+    def excluir(self, id_usuario):
+        conexao = obter_conexao()
+        try:
+            cursor = conexao.execute(
+                "DELETE FROM Usuarios WHERE id = ?", (id_usuario,)
+            )
+            if cursor.rowcount == 0:
+                raise ValueError(f"Usuário {id_usuario} não encontrado.")
+            conexao.commit()
+            return cursor.rowcount
+        except Exception:
+            conexao.rollback()
+            raise
+        finally:
+            conexao.close()
+
+    def limpar(self):
+        conexao = obter_conexao()
+        try:
+            cursor = conexao.execute("DELETE FROM Usuarios")
+            conexao.commit()
+            return cursor.rowcount
+        except sqlite3.Error:
+            conexao.rollback()
+            raise
         finally:
             conexao.close()

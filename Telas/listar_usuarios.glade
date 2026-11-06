@@ -7,15 +7,44 @@
     <property name="default-width">600</property>
     <property name="default-height">400</property>
     <child>
-      <object class="GtkScrolledWindow">
+      <object class="GtkBox">
         <property name="visible">True</property>
-        <property name="can-focus">True</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">8</property>
         <property name="margin">12</property>
         <child>
-          <object class="GtkTreeView" id="treeview_usuarios">
+          <object class="GtkScrolledWindow">
             <property name="visible">True</property>
             <property name="can-focus">True</property>
-            <property name="headers-visible">True</property>
+            <property name="vexpand">True</property>
+            <child>
+              <object class="GtkTreeView" id="treeview_usuarios">
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="headers-visible">True</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkButtonBox">
+            <property name="visible">True</property>
+            <property name="layout-style">end</property>
+            <property name="spacing">8</property>
+            <child>
+              <object class="GtkButton" id="btn_excluir_usuario">
+                <property name="label" translatable="yes">Excluir selecionado</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="btn_limpar_usuarios">
+                <property name="label" translatable="yes">Limpar usuários</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+              </object>
+            </child>
           </object>
         </child>
       </object>

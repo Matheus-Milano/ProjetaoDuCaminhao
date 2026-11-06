@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 
-from Banco.conector_do_banco import obter_conexao
+from Banco.conector_do_banco import gerar_id_aleatorio, obter_conexao
 from Classes.Caminhao import Caminhao
 
 class CaminhaoDAO:
@@ -44,7 +44,7 @@ class CaminhaoDAO:
         conexao = obter_conexao()
         cursor = conexao.cursor()
         cursor.execute(
-            "SELECT id, placa, renavam, marca, modelo, ano_fabricacao, tipo_carroceria, carga_maxima_kg, km_atual, status, motorista_responsavel_id FROM Caminhoes"
+            "SELECT id, placa, renavam, marca, modelo, ano_fabricacao, tipo_carroceria, carga_maxima_kg, km_atual, status, motorista_responsavel_id FROM Caminhoes ORDER BY id ASC"
         )
         linhas = cursor.fetchall()
         conexao.close()
@@ -70,15 +70,18 @@ class CaminhaoDAO:
     def inserir(self, caminhao: Caminhao):
         conexao = obter_conexao()
         try:
+            conexao.execute("BEGIN IMMEDIATE")
+            id_caminhao = gerar_id_aleatorio(conexao, "Caminhoes")
             cursor = conexao.execute(
                 """
                 INSERT INTO Caminhoes (
-                    placa, renavam, marca, modelo, ano_fabricacao,
+                    id, placa, renavam, marca, modelo, ano_fabricacao,
                     tipo_carroceria, carga_maxima_kg, km_atual, status,
                     motorista_responsavel_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    id_caminhao,
                     caminhao.placa,
                     caminhao.renavam,
                     caminhao.marca,
@@ -92,7 +95,7 @@ class CaminhaoDAO:
                 ),
             )
             conexao.commit()
-            caminhao.id = cursor.lastrowid
+            caminhao.id = id_caminhao
             return caminhao.id
         except sqlite3.Error:
             conexao.rollback()
@@ -105,6 +108,18 @@ class CaminhaoDAO:
         try:
             conexao.execute("DELETE FROM Caminhoes WHERE id = ?", (id_caminhao,))
             conexao.commit()
+        finally:
+            conexao.close()
+
+    def limpar(self):
+        conexao = obter_conexao()
+        try:
+            cursor = conexao.execute("DELETE FROM Caminhoes")
+            conexao.commit()
+            return cursor.rowcount
+        except sqlite3.Error:
+            conexao.rollback()
+            raise
         finally:
             conexao.close()
 

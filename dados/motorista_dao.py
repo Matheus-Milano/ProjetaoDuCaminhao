@@ -1,7 +1,7 @@
 import sqlite3
 from datetime import date
 
-from Banco.conector_do_banco import obter_conexao
+from Banco.conector_do_banco import gerar_id_aleatorio, obter_conexao
 from Classes.Motorista import Motorista
 
 
@@ -38,7 +38,7 @@ class MotoristaDAO:
         conexao = obter_conexao()
         try:
             linhas = conexao.execute(
-                f"SELECT {self._colunas} FROM Motoristas ORDER BY nome_completo"
+                f"SELECT {self._colunas} FROM Motoristas ORDER BY id ASC"
             ).fetchall()
             return [_motorista_da_linha(linha) for linha in linhas]
         finally:
@@ -58,14 +58,17 @@ class MotoristaDAO:
     def inserir(self, motorista):
         conexao = obter_conexao()
         try:
+            conexao.execute("BEGIN IMMEDIATE")
+            id_motorista = gerar_id_aleatorio(conexao, "Motoristas")
             cursor = conexao.execute(
                 """
                 INSERT INTO Motoristas (
-                    nome_completo, cpf, data_nascimento, telefone, cnh_numero,
+                    id, nome_completo, cpf, data_nascimento, telefone, cnh_numero,
                     cnh_categoria, cnh_validade, data_admissao, status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    id_motorista,
                     motorista.nome_completo,
                     motorista.cpf,
                     _para_texto_data(motorista.data_nascimento),
@@ -78,7 +81,7 @@ class MotoristaDAO:
                 ),
             )
             conexao.commit()
-            motorista.id = cursor.lastrowid
+            motorista.id = id_motorista
             return motorista.id
         except sqlite3.Error:
             conexao.rollback()

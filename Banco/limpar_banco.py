@@ -3,28 +3,40 @@ from pathlib import Path
 
 CAMINHO_BANCO = Path(__file__).with_name("banco.db")
 
-conn = sqlite3.connect(CAMINHO_BANCO)
-cursor = conn.cursor()
 
-try:
-    cursor.execute("PRAGMA foreign_keys = OFF;")
+def limpar_banco():
+    if not CAMINHO_BANCO.is_file():
+        raise FileNotFoundError(f"Banco de dados não encontrado: {CAMINHO_BANCO}")
 
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
-    tabelas = cursor.fetchall()
+    conexao = sqlite3.connect(CAMINHO_BANCO)
+    try:
+        conexao.execute("PRAGMA foreign_keys = OFF;")
+        conexao.execute("BEGIN IMMEDIATE")
+        tabelas = conexao.execute(
+            "SELECT name FROM sqlite_master "
+            "WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+        ).fetchall()
 
-    for tabela in tabelas:
-        nome_tabela = tabela[0]
-        cursor.execute(f"DROP TABLE IF EXISTS {nome_tabela};")
-        print(f"Tabela '{nome_tabela}' excluída.")
+        for (nome_tabela,) in tabelas:
+            nome_seguro = nome_tabela.replace('"', '""')
+            conexao.execute(f'DROP TABLE "{nome_seguro}"')
 
-    conn.commit()
-    cursor.execute("VACUUM;")
+        conexao.commit()
+        conexao.execute("VACUUM")
+        return len(tabelas)
+    except Exception:
+        conexao.rollback()
+        raise
+    finally:
+        conexao.close()
 
-    print("\nTodos os dados e tabelas do banco foram limpos com sucesso!")
 
-except Exception as e:
-    conn.rollback()
-    print(f"Ocorreu um erro ao limpar o banco: {e}")
-
-finally:
-    conn.close()
+if __name__ == "__main__":
+    confirmacao = input(
+        "Isso apagará todas as tabelas do banco. Digite LIMPAR para confirmar: "
+    )
+    if confirmacao == "LIMPAR":
+        quantidade = limpar_banco()
+        print(f"{quantidade} tabela(s) removida(s).")
+    else:
+        print("Operação cancelada. Nenhuma tabela foi removida.")

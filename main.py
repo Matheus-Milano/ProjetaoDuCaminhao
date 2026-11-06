@@ -2,7 +2,7 @@ import sqlite3
 import gi
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
+from gi.repository import GObject, Gtk
 from Banco.criar_bancos import inicializar_banco
 from Classes.Caminhao import Caminhao
 from dados.caminhao_dao import CaminhaoDAO
@@ -69,12 +69,14 @@ class SistemaFrotion:
         self.btn_novo = self.builder_main.get_object("btn_novo_caminhao")
         self.btn_editar = self.builder_main.get_object("btn_editar_caminhao")
         self.btn_excluir = self.builder_main.get_object("btn_excluir_caminhao")
+        self.btn_limpar_banco = self.builder_main.get_object("btn_limpar_banco")
         self.btn_catalogo = self.builder_main.get_object("btn_ir_catalogo")
         self.btn_listar_usuarios = self.builder_main.get_object("btn_listar_usuarios")
 
         self.btn_novo.connect("clicked", self.cadastrar_caminhao_exemplo)
         self.btn_editar.connect("clicked", self.editar_caminhao_selecionado)
         self.btn_excluir.connect("clicked", self.excluir_caminhao_selecionado)
+        self.btn_limpar_banco.connect("clicked", self.limpar_banco_completo)
         self.btn_catalogo.connect("clicked", self.abrir_catalogo_pecas)
         self.btn_listar_usuarios.connect("clicked", self.abrir_tela_listar_usuarios)
         self.win_main.connect("destroy", Gtk.main_quit)
@@ -85,7 +87,9 @@ class SistemaFrotion:
         self.win_main.show_all()
 
     def configurar_tabela_caminhoes(self):
-        self.store_caminhoes = Gtk.ListStore(int, str, str, str, str)
+        self.store_caminhoes = Gtk.ListStore(
+            GObject.TYPE_INT64, str, str, str, str
+        )
         self.treeview.set_model(self.store_caminhoes)
         self.configurar_colunas(
             self.treeview, ["ID", "Placa", "Marca", "Modelo", "Status"]
@@ -136,6 +140,33 @@ class SistemaFrotion:
             caminhao_id = modelo_store[arvore_iter][0]
             self.caminhao_dao.excluir(caminhao_id)
             self.atualizar_tabela_caminhoes()
+
+    def limpar_banco_completo(self, widget):
+        if not self._confirmar_acao(
+            "Isso excluirá todos os caminhões. Viagens vinculadas e suas "
+            "entregas também poderão ser excluídas pela relação do banco. "
+            "Usuários, motoristas e peças não serão removidos. Deseja continuar?",
+            self.win_main,
+        ):
+            return
+
+        try:
+            quantidade_caminhoes = self.caminhao_dao.limpar()
+            self.atualizar_tabela_caminhoes()
+        except sqlite3.Error as erro:
+            print(f"Erro ao limpar os caminhões: {erro}")
+            self._mostrar_mensagem(
+                Gtk.MessageType.ERROR,
+                "Não foi possível limpar os caminhões.",
+                self.win_main,
+            )
+            return
+
+        self._mostrar_mensagem(
+            Gtk.MessageType.INFO,
+            f"{quantidade_caminhoes} caminhão(ões) removido(s).",
+            self.win_main,
+        )
 
     def editar_caminhao_selecionado(self, widget):
         selecao = self.treeview.get_selection()
@@ -262,15 +293,24 @@ class SistemaFrotion:
         self.treeview_usuarios = self.builder_listar_usuarios.get_object(
             "treeview_usuarios"
         )
+        self.btn_excluir_usuario = self.builder_listar_usuarios.get_object(
+            "btn_excluir_usuario"
+        )
+        self.btn_limpar_usuarios = self.builder_listar_usuarios.get_object(
+            "btn_limpar_usuarios"
+        )
         self.win_listar_usuarios.set_transient_for(self.win_main)
 
-        self.store_usuarios = Gtk.ListStore(int, str, str)
+        self.store_usuarios = Gtk.ListStore(GObject.TYPE_INT64, str, str)
         self.treeview_usuarios.set_model(self.store_usuarios)
         self.configurar_colunas(self.treeview_usuarios, ("ID", "Nome", "E-mail"))
+        self.btn_excluir_usuario.connect(
+            "clicked", self.excluir_usuario_selecionado
+        )
+        self.btn_limpar_usuarios.connect("clicked", self.limpar_usuarios)
 
         try:
-            for usuario in UsuarioDAO().listar():
-                self.store_usuarios.append(usuario)
+            self._atualizar_lista_usuarios()
         except sqlite3.Error as erro:
             print(f"Erro ao listar usuários: {erro}")
             self._mostrar_mensagem(
@@ -282,6 +322,89 @@ class SistemaFrotion:
             return
 
         self.win_listar_usuarios.show_all()
+
+    def _atualizar_lista_usuarios(self):
+        self.store_usuarios.clear()
+        for usuario in UsuarioDAO().listar():
+            self.store_usuarios.append(usuario)
+
+    def excluir_usuario_selecionado(self, widget):
+        modelo, arvore_iter = self.treeview_usuarios.get_selection().get_selected()
+        if arvore_iter is None:
+            self._mostrar_mensagem(
+                Gtk.MessageType.WARNING,
+                "Selecione um usuário para excluir.",
+                self.win_listar_usuarios,
+            )
+            return
+
+        id_usuario = modelo[arvore_iter][0]
+        if not self._confirmar_acao(
+            "Deseja excluir o usuário selecionado?", self.win_listar_usuarios
+        ):
+            return
+
+        try:
+            UsuarioDAO().excluir(id_usuario)
+            self._atualizar_lista_usuarios()
+        except (ValueError, sqlite3.Error) as erro:
+            print(f"Erro ao excluir usuário: {erro}")
+            self._mostrar_mensagem(
+                Gtk.MessageType.ERROR,
+                "Não foi possível excluir o usuário selecionado.",
+                self.win_listar_usuarios,
+            )
+            return
+
+        self._mostrar_mensagem(
+            Gtk.MessageType.INFO,
+            "Usuário excluído com sucesso.",
+            self.win_listar_usuarios,
+        )
+
+    def limpar_usuarios(self, widget):
+        try:
+            quantidade = len(UsuarioDAO().listar())
+        except sqlite3.Error as erro:
+            print(f"Erro ao consultar usuários: {erro}")
+            self._mostrar_mensagem(
+                Gtk.MessageType.ERROR,
+                "Não foi possível consultar os usuários cadastrados.",
+                self.win_listar_usuarios,
+            )
+            return
+
+        if quantidade == 0:
+            self._mostrar_mensagem(
+                Gtk.MessageType.INFO,
+                "Não há usuários cadastrados.",
+                self.win_listar_usuarios,
+            )
+            return
+
+        if not self._confirmar_acao(
+            f"Isso excluirá todos os {quantidade} usuário(s). Deseja continuar?",
+            self.win_listar_usuarios,
+        ):
+            return
+
+        try:
+            removidos = UsuarioDAO().limpar()
+            self._atualizar_lista_usuarios()
+        except sqlite3.Error as erro:
+            print(f"Erro ao limpar usuários: {erro}")
+            self._mostrar_mensagem(
+                Gtk.MessageType.ERROR,
+                "Não foi possível excluir os usuários.",
+                self.win_listar_usuarios,
+            )
+            return
+
+        self._mostrar_mensagem(
+            Gtk.MessageType.INFO,
+            f"{removidos} usuário(s) excluído(s).",
+            self.win_listar_usuarios,
+        )
 
     def abrir_tela_criar_usuario(self, widget):
         self.builder_usuario = Gtk.Builder()
@@ -358,6 +481,19 @@ class SistemaFrotion:
         )
         dialogo.run()
         dialogo.destroy()
+
+    @staticmethod
+    def _confirmar_acao(mensagem, janela_pai):
+        dialogo = Gtk.MessageDialog(
+            transient_for=janela_pai,
+            flags=Gtk.DialogFlags.MODAL,
+            message_type=Gtk.MessageType.WARNING,
+            buttons=Gtk.ButtonsType.YES_NO,
+            text=mensagem,
+        )
+        resposta = dialogo.run()
+        dialogo.destroy()
+        return resposta == Gtk.ResponseType.YES
 
 if __name__ == "__main__":
     app = SistemaFrotion()
