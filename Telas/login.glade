@@ -160,6 +160,19 @@
           </packing>
         </child>
         <child>
+          <object class="GtkButton" id="btn_criar_usuario">
+            <property name="label" translatable="yes">Criar Nova Conta / Novo Utilizador</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="receives-default">False</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">4</property>
+          </packing>
+        </child>
+        <child>
           <object class="GtkLabel" id="lbl_erro_login">
             <property name="can-focus">False</property>
             <property name="label" translatable="yes">⚠️ Erro: Credenciais inválidas!</property>
@@ -168,7 +181,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">4</property>
+            <property name="position">5</property>
           </packing>
         </child>
       </object>

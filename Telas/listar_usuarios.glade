@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk+" version="3.24"/>
+  <object class="GtkWindow" id="window_listar_usuarios">
+    <property name="can-focus">False</property>
+    <property name="title" translatable="yes">Usuários cadastrados</property>
+    <property name="default-width">600</property>
+    <property name="default-height">400</property>
+    <child>
+      <object class="GtkScrolledWindow">
+        <property name="visible">True</property>
+        <property name="can-focus">True</property>
+        <property name="margin">12</property>
+        <child>
+          <object class="GtkTreeView" id="treeview_usuarios">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="headers-visible">True</property>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

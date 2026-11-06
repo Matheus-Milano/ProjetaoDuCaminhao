@@ -17,21 +17,7 @@ class Caminhao:
         status="Disponível",
         motorista_responsavel_id=None,
     ):
-        """Inicializa um objeto Caminhao com os atributos do DER.
-
-        Args:
-            id_caminhao (int, optional): Identificador único (PK).
-            placa (str): Placa do caminhão.
-            renavam (str): Código RENAVAM.
-            marca (str): Marca do veículo.
-            modelo (str): Modelo do veículo.
-            ano_fabricacao (int): Ano de fabricação.
-            tipo_carroceria (str): Tipo de baú/carroceria.
-            carga_maxima_kg (float): Capacidade máxima em kg.
-            km_atual (int): Quilometragem atual.
-            status (str): Status operacional (ex: Disponível, Em Rota, Manutenção).
-            motorista_responsavel_id (int, optional): FK para Motoristas.
-        """
+        """Inicializa um objeto Caminhao com os atributos do DER."""
         self.id = id_caminhao
         self.placa = placa
         self.renavam = renavam

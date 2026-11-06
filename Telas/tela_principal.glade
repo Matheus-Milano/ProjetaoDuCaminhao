@@ -62,18 +62,6 @@
                 <property name="position">2</property>
               </packing>
             </child>
-            <child>
-              <object class="GtkEntry" id="txt_pesquisar_placa">
-                <property name="visible">True</property>
-                <property name="can-focus">True</property>
-                <property name="placeholder-text" translatable="yes">🔍 Pesquisar caminhão por placa, modelo ou estado...</property>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">3</property>
-              </packing>
-            </child>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -125,6 +113,13 @@
         <property name="title" translatable="yes">Frotion</property>
         <property name="subtitle" translatable="yes">Painel de Controlo da Frota de Caminhões</property>
         <property name="show-close-button">True</property>
+        <child>
+          <object class="GtkButton" id="btn_listar_usuarios">
+            <property name="label" translatable="yes">👥 Usuários</property>
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+          </object>
+        </child>
         <child>
           <object class="GtkButton" id="btn_ir_catalogo">
             <property name="label" translatable="yes">📦 Abrir Catálogo / Peças</property>
