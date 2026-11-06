@@ -26,7 +26,7 @@ class CaminhaoDAO:
             return None
 
         return Caminhao(
-            id_caminhao=linha[0],
+            id=linha[0],
             placa=linha[1],
             renavam=linha[2],
             marca=linha[3],
@@ -40,7 +40,6 @@ class CaminhaoDAO:
         )
 
     def listar_todos(self):
-        """Retorna uma lista de objetos Caminhao do banco."""
         conexao = obter_conexao()
         cursor = conexao.cursor()
         cursor.execute(
@@ -52,7 +51,7 @@ class CaminhaoDAO:
         for l in linhas:
             caminhoes.append(
                 Caminhao(
-                    id_caminhao=l[0],
+                    id=l[0],
                     placa=l[1],
                     renavam=l[2],
                     marca=l[3],

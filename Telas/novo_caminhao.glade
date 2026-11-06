@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk+" version="3.24"/>
+  <object class="GtkDialog" id="dialog_novo_caminhao">
+    <property name="title" translatable="yes">Novo caminhão</property>
+    <property name="modal">True</property>
+    <property name="default-width">440</property>
+    <property name="default-height">560</property>
+    <child internal-child="vbox">
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">10</property>
+        <property name="margin">16</property>
+        <child>
+          <object class="GtkGrid">
+            <property name="visible">True</property>
+            <property name="row-spacing">8</property>
+            <property name="column-spacing">12</property>
+            <child>
+              <object class="GtkLabel"><property name="visible">True</property><property name="label">Placa</property><property name="halign">start</property></object>
+              <packing><property name="left-attach">0</property><property name="top-attach">0</property></packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="txt_placa"><property name="visible">True</property><property name="hexpand">True</property></object>
+              <packing><property name="left-attach">1</property><property name="top-attach">0</property></packing>
+            </child>
+            <child>
+              <object class="GtkLabel"><property name="visible">True</property><property name="label">RENAVAM</property><property name="halign">start</property></object>
+              <packing><property name="left-attach">0</property><property name="top-attach">1</property></packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="txt_renavam"><property name="visible">True</property><property name="hexpand">True</property></object>
+              <packing><property name="left-attach">1</property><property name="top-attach">1</property></packing>
+            </child>
+            <child>
+              <object class="GtkLabel"><property name="visible">True</property><property name="label">Marca</property><property name="halign">start</property></object>
+              <packing><property name="left-attach">0</property><property name="top-attach">2</property></packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="txt_marca"><property name="visible">True</property><property name="hexpand">True</property></object>
+              <packing><property name="left-attach">1</property><property name="top-attach">2</property></packing>
+            </child>
+            <child>
+              <object class="GtkLabel"><property name="visible">True</property><property name="label">Modelo</property><property name="halign">start</property></object>
+              <packing><property name="left-attach">0</property><property name="top-attach">3</property></packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="txt_modelo"><property name="visible">True</property><property name="hexpand">True</property></object>
+              <packing><property name="left-attach">1</property><property name="top-attach">3</property></packing>
+            </child>
+            <child>
+              <object class="GtkLabel"><property name="visible">True</property><property name="label">Ano de fabricação</property><property name="halign">start</property></object>
+              <packing><property name="left-attach">0</property><property name="top-attach">4</property></packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="txt_ano_fabricacao"><property name="visible">True</property><property name="hexpand">True</property><property name="input-purpose">digits</property></object>
+              <packing><property name="left-attach">1</property><property name="top-attach">4</property></packing>
+            </child>
+            <child>
+              <object class="GtkLabel"><property name="visible">True</property><property name="label">Tipo de carroceria</property><property name="halign">start</property></object>
+              <packing><property name="left-attach">0</property><property name="top-attach">5</property></packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="txt_tipo_carroceria"><property name="visible">True</property><property name="hexpand">True</property></object>
+              <packing><property name="left-attach">1</property><property name="top-attach">5</property></packing>
+            </child>
+            <child>
+              <object class="GtkLabel"><property name="visible">True</property><property name="label">Carga máxima (kg)</property><property name="halign">start</property></object>
+              <packing><property name="left-attach">0</property><property name="top-attach">6</property></packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="txt_carga_maxima_kg"><property name="visible">True</property><property name="hexpand">True</property></object>
+              <packing><property name="left-attach">1</property><property name="top-attach">6</property></packing>
+            </child>
+            <child>
+              <object class="GtkLabel"><property name="visible">True</property><property name="label">Quilometragem atual</property><property name="halign">start</property></object>
+              <packing><property name="left-attach">0</property><property name="top-attach">7</property></packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="txt_km_atual"><property name="visible">True</property><property name="hexpand">True</property><property name="input-purpose">digits</property></object>
+              <packing><property name="left-attach">1</property><property name="top-attach">7</property></packing>
+            </child>
+            <child>
+              <object class="GtkLabel"><property name="visible">True</property><property name="label">Status</property><property name="halign">start</property></object>
+              <packing><property name="left-attach">0</property><property name="top-attach">8</property></packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="txt_status"><property name="visible">True</property><property name="hexpand">True</property></object>
+              <packing><property name="left-attach">1</property><property name="top-attach">8</property></packing>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child internal-child="action_area">
+      <object class="GtkButtonBox">
+        <property name="visible">True</property>
+        <property name="layout-style">end</property>
+        <child>
+          <object class="GtkButton" id="btn_cancelar_novo">
+            <property name="label" translatable="yes">Cancelar</property>
+            <property name="visible">True</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkButton" id="btn_salvar_novo">
+            <property name="label" translatable="yes">Cadastrar caminhão</property>
+            <property name="visible">True</property>
+            <property name="can-default">True</property>
+            <property name="has-default">True</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <action-widgets>
+      <action-widget response="-6">btn_cancelar_novo</action-widget>
+      <action-widget response="-5">btn_salvar_novo</action-widget>
+    </action-widgets>
+  </object>
+</interface>

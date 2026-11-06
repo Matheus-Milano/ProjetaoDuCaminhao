@@ -1,4 +1,6 @@
+import random
 import sqlite3
+import string
 import gi
 
 gi.require_version("Gtk", "3.0")
@@ -7,8 +9,8 @@ from Banco.criar_bancos import inicializar_banco
 from Classes.Caminhao import Caminhao
 from dados.caminhao_dao import CaminhaoDAO
 from dados.usuario_dao import UsuarioDAO
-
-
+from Classes.Peca import Peca
+from dados.peca_dao import PecaDAO
 class SistemaFrotion:
     def __init__(self):
         inicializar_banco()
@@ -33,6 +35,118 @@ class SistemaFrotion:
         self.win_login.connect("destroy", Gtk.main_quit)
 
         self.win_login.show_all()
+
+    def abrir_catalogo_pecas(self, widget):
+        self.builder_pecas = Gtk.Builder()
+        self.builder_pecas.add_from_file("Telas/catalogo_pecas.glade")
+        self.win_pecas = self.builder_pecas.get_object("window_pecas")
+        btn_nova_peca = self.builder_pecas.get_object("btn_nova_peca")
+        btn_nova_peca.connect("clicked", self.abrir_tela_entrada_pecas)
+        try:
+            self.atualizar_lista_pecas()
+        except sqlite3.Error as erro:
+            print(f"Erro ao carregar peças: {erro}")
+            self._mostrar_mensagem(
+                Gtk.MessageType.ERROR,
+                "Não foi possível carregar as peças do estoque.",
+                self.win_pecas,
+            )
+        self.win_pecas.show_all()
+
+    def atualizar_lista_pecas(self):
+        lista = self.builder_pecas.get_object("list_pecas")
+        for linha in lista.get_children():
+            lista.remove(linha)
+
+        pecas = PecaDAO().listar_todos()
+        if not pecas:
+            linha = Gtk.Label(label="Nenhuma peça cadastrada.")
+            linha.set_xalign(0)
+            lista.add(linha)
+            lista.show_all()
+            return
+
+        for peca in pecas:
+            linha = Gtk.Label(
+                label=(
+                    f"Código: {peca.codigo} | {peca.nome} | "
+                    f"Estoque: {peca.quantidade} | "
+                    f"Valor unitário: R$ {peca.valor_unitario:.2f}"
+                )
+            )
+            linha.set_xalign(0)
+            linha.set_margin_top(8)
+            linha.set_margin_bottom(8)
+            lista.add(linha)
+        lista.show_all()
+
+    def abrir_tela_entrada_pecas(self, widget):
+        self.builder_entrada_pecas = Gtk.Builder()
+        self.builder_entrada_pecas.add_from_file("Telas/registrar_entrada_pecas.glade")
+        self.win_entrada_pecas = self.builder_entrada_pecas.get_object("window_entrada_pecas")
+        self.win_entrada_pecas.set_transient_for(self.win_pecas)
+        self.win_entrada_pecas.show_all()
+        self.btn_salvar_entrada_peca = self.builder_entrada_pecas.get_object("btn_salvar_entrada_peca")
+        self.btn_salvar_entrada_peca.connect("clicked", self.salvar_entrada_peca)
+
+    def salvar_entrada_peca(self, widget):
+        codigo = self.builder_entrada_pecas.get_object("txt_codigo_peca").get_text().strip()
+        nome = self.builder_entrada_pecas.get_object("txt_nome_peca").get_text().strip()
+        quantidade_texto = self.builder_entrada_pecas.get_object("txt_quantidade_entrada").get_text().strip()
+        valor_texto = self.builder_entrada_pecas.get_object("txt_valor_unitario_peca").get_text().strip().replace(",", ".")
+        if not codigo or not nome or not quantidade_texto or not valor_texto:
+            self._mostrar_mensagem(
+                Gtk.MessageType.WARNING,
+                "Preencha todos os campos.",
+                self.win_entrada_pecas,
+            )
+            return
+
+        try:
+            quantidade = int(quantidade_texto)
+            valor_unitario = float(valor_texto)
+
+            if quantidade <= 0 or valor_unitario <= 0:
+                raise ValueError
+            peca = Peca(
+                nome=nome,
+                codigo=codigo,
+                quantidade=quantidade,
+                valor_unitario=valor_unitario,
+            )
+            PecaDAO().inserir(peca)
+            self.atualizar_lista_pecas()
+
+        except ValueError:
+            self._mostrar_mensagem(
+                Gtk.MessageType.WARNING,
+                "Quantidade e valor devem ser números maiores que zero.",
+                self.win_entrada_pecas,
+            )
+            return
+        except sqlite3.Error as erro:
+            print(f"Erro ao registrar peça: {erro}")
+            self._mostrar_mensagem(
+                Gtk.MessageType.ERROR,
+                "Não foi possível registrar a peça.",
+                self.win_entrada_pecas,
+            )
+            return
+
+        self.win_entrada_pecas.destroy()
+
+    def abrir_tela_criar_usuario(self, widget):
+        self.builder_usuario = Gtk.Builder()
+        self.builder_usuario.add_from_file("Telas/criar_usuario.glade")
+
+        self.win_criar_usuario = self.builder_usuario.get_object("window_criar_usuario")
+        self.txt_novo_nome = self.builder_usuario.get_object("txt_novo_nome")
+        self.txt_novo_email = self.builder_usuario.get_object("txt_novo_email")
+        self.txt_nova_senha = self.builder_usuario.get_object("txt_nova_senha")
+        self.btn_salvar_usuario = self.builder_usuario.get_object("btn_salvar_usuario")
+        self.win_criar_usuario.set_transient_for(self.win_login)
+        self.btn_salvar_usuario.connect("clicked", self.salvar_usuario)
+        self.win_criar_usuario.show_all()
 
     def autenticar(self, widget):
         usuario = self.txt_usuario.get_text().strip()
@@ -73,7 +187,7 @@ class SistemaFrotion:
         self.btn_catalogo = self.builder_main.get_object("btn_ir_catalogo")
         self.btn_listar_usuarios = self.builder_main.get_object("btn_listar_usuarios")
 
-        self.btn_novo.connect("clicked", self.cadastrar_caminhao_exemplo)
+        self.btn_novo.connect("clicked", self.abrir_tela_novo_caminhao)
         self.btn_editar.connect("clicked", self.editar_caminhao_selecionado)
         self.btn_excluir.connect("clicked", self.excluir_caminhao_selecionado)
         self.btn_limpar_banco.connect("clicked", self.limpar_banco_completo)
@@ -111,26 +225,115 @@ class SistemaFrotion:
                 [c.id, c.placa, c.marca, c.modelo, c.status]
             )
 
-    def cadastrar_caminhao_exemplo(self, widget):
-        import random
+    def abrir_tela_novo_caminhao(self, widget):
+        try:
+            caminhoes = self.caminhao_dao.listar_todos()
+        except sqlite3.Error as erro:
+            print(f"Erro ao consultar caminhões: {erro}")
+            self._mostrar_mensagem(
+                Gtk.MessageType.ERROR,
+                "Não foi possível preparar o cadastro do caminhão.",
+                self.win_main,
+            )
+            return
 
-        placa_random = f"ABC-{random.randint(1000, 9999)}"
-        renavam_random = str(random.randint(10000000000, 99999999999))
+        placas_existentes = {c.placa for c in caminhoes}
+        renavams_existentes = {c.renavam for c in caminhoes}
+        while True:
+            placa = (
+                f"{''.join(random.choices(string.ascii_uppercase, k=3))}-"
+                f"{random.randint(0, 9999):04d}"
+            )
+            renavam = str(random.randint(10000000000, 99999999999))
+            if placa not in placas_existentes and renavam not in renavams_existentes:
+                break
 
-        novo_caminhao = Caminhao(
-            placa=placa_random,
-            renavam=renavam_random,
-            marca="Volvo",
-            modelo="FH 540",
-            ano_fabricacao=2024,
-            tipo_carroceria="Baú",
-            carga_maxima_kg=40000.0,
-            km_atual=10000,
-            status="Disponível",
-        )
+        builder = Gtk.Builder()
+        builder.add_from_file("Telas/novo_caminhao.glade")
+        dialogo = builder.get_object("dialog_novo_caminhao")
+        dialogo.set_transient_for(self.win_main)
 
-        self.caminhao_dao.inserir(novo_caminhao)
-        self.atualizar_tabela_caminhoes()
+        campos = (
+            "txt_placa", "txt_renavam", "txt_marca", "txt_modelo", "txt_ano_fabricacao", "txt_tipo_carroceria","txt_carga_maxima_kg", "txt_km_atual", "txt_status", )
+        entradas = {nome: builder.get_object(nome) for nome in campos}
+        entradas["txt_placa"].set_text(placa)
+        entradas["txt_placa"].set_editable(False)
+        entradas["txt_renavam"].set_text(renavam)
+        entradas["txt_renavam"].set_editable(False)
+        entradas["txt_km_atual"].set_text("0")
+        entradas["txt_status"].set_text("Disponível")
+
+        while dialogo.run() == Gtk.ResponseType.OK:
+            try:
+                marca = entradas["txt_marca"].get_text().strip()
+                modelo = entradas["txt_modelo"].get_text().strip()
+                ano_fabricacao = int(entradas["txt_ano_fabricacao"].get_text().strip())
+                tipo_carroceria = entradas["txt_tipo_carroceria"].get_text().strip()
+                carga_maxima_kg = float(
+                    entradas["txt_carga_maxima_kg"]
+                    .get_text()
+                    .strip()
+                    .replace(",", ".")
+                )
+                km_atual = int(entradas["txt_km_atual"].get_text().strip())
+                status = entradas["txt_status"].get_text().strip()
+
+                if not all((marca, modelo, tipo_carroceria, status)):
+                    raise ValueError("Preencha todos os campos.")
+                if ano_fabricacao <= 0 or km_atual < 0:
+                    raise ValueError(
+                        "Ano e quilometragem devem ser valores válidos."
+                    )
+                if carga_maxima_kg <= 0:
+                    raise ValueError("A carga máxima deve ser maior que zero.")
+
+                novo_caminhao = Caminhao(
+                    placa=placa, renavam=renavam, marca=marca, modelo=modelo, ano_fabricacao=ano_fabricacao, tipo_carroceria=tipo_carroceria,carga_maxima_kg=carga_maxima_kg, km_atual=km_atual, status=status
+                )
+                self.caminhao_dao.inserir(novo_caminhao)
+            except ValueError as erro:
+                self._mostrar_mensagem(
+                    Gtk.MessageType.WARNING, str(erro), dialogo
+                )
+                continue
+            except sqlite3.IntegrityError:
+                placas_existentes.add(placa)
+                renavams_existentes.add(renavam)
+                while True:
+                    placa = (
+                        f"{''.join(random.choices(string.ascii_uppercase, k=3))}-"
+                        f"{random.randint(0, 9999):04d}"
+                    )
+                    renavam = str(random.randint(10000000000, 99999999999))
+                    if (
+                        placa not in placas_existentes
+                        and renavam not in renavams_existentes
+                    ):
+                        break
+                entradas["txt_placa"].set_text(placa)
+                entradas["txt_renavam"].set_text(renavam)
+                self._mostrar_mensagem(
+                    Gtk.MessageType.WARNING,
+                    "A placa ou o RENAVAM já estava cadastrado. "
+                    "Foram gerados novos números; tente salvar novamente.",
+                    dialogo,
+                )
+                continue
+            except sqlite3.Error as erro:
+                print(f"Erro ao cadastrar caminhão: {erro}")
+                self._mostrar_mensagem(
+                    Gtk.MessageType.ERROR,
+                    "Não foi possível salvar o caminhão.",
+                    dialogo,
+                )
+                dialogo.destroy()
+                return
+
+            dialogo.destroy()
+            self.atualizar_tabela_caminhoes()
+            return
+
+        dialogo.destroy()
 
     def excluir_caminhao_selecionado(self, widget):
         selecao = self.treeview.get_selection()
@@ -219,18 +422,10 @@ class SistemaFrotion:
             caminhao.renavam = entradas["txt_renavam"].get_text().strip()
             caminhao.marca = entradas["txt_marca"].get_text().strip()
             caminhao.modelo = entradas["txt_modelo"].get_text().strip()
-            caminhao.ano_fabricacao = int(
-                entradas["txt_ano_fabricacao"].get_text().strip()
-            )
-            caminhao.tipo_carroceria = (
-                entradas["txt_tipo_carroceria"].get_text().strip()
-            )
-            caminhao.carga_maxima_kg = float(
-                entradas["txt_carga_maxima_kg"].get_text().strip().replace(",", ".")
-            )
-            caminhao.km_atual = int(
-                entradas["txt_km_atual"].get_text().strip()
-            )
+            caminhao.ano_fabricacao = int(entradas["txt_ano_fabricacao"].get_text().strip())
+            caminhao.tipo_carroceria = (entradas["txt_tipo_carroceria"].get_text().strip())
+            caminhao.carga_maxima_kg = float(entradas["txt_carga_maxima_kg"].get_text().strip().replace(",", "."))
+            caminhao.km_atual = int(entradas["txt_km_atual"].get_text().strip())
             caminhao.status = entradas["txt_status"].get_text().strip()
 
             if not all(
@@ -277,12 +472,6 @@ class SistemaFrotion:
         dialogo.destroy()
         self.atualizar_tabela_caminhoes()
 
-    def abrir_catalogo_pecas(self, widget):
-        builder_pecas = Gtk.Builder()
-        builder_pecas.add_from_file("Telas/catalogo_pecas.glade")
-        win_pecas = builder_pecas.get_object("window_pecas")
-        win_pecas.show_all()
-
     def abrir_tela_listar_usuarios(self, widget):
         self.builder_listar_usuarios = Gtk.Builder()
         self.builder_listar_usuarios.add_from_file("Telas/listar_usuarios.glade")
@@ -304,9 +493,7 @@ class SistemaFrotion:
         self.store_usuarios = Gtk.ListStore(GObject.TYPE_INT64, str, str)
         self.treeview_usuarios.set_model(self.store_usuarios)
         self.configurar_colunas(self.treeview_usuarios, ("ID", "Nome", "E-mail"))
-        self.btn_excluir_usuario.connect(
-            "clicked", self.excluir_usuario_selecionado
-        )
+        self.btn_excluir_usuario.connect("clicked", self.excluir_usuario_selecionado)
         self.btn_limpar_usuarios.connect("clicked", self.limpar_usuarios)
 
         try:
@@ -339,9 +526,7 @@ class SistemaFrotion:
             return
 
         id_usuario = modelo[arvore_iter][0]
-        if not self._confirmar_acao(
-            "Deseja excluir o usuário selecionado?", self.win_listar_usuarios
-        ):
+        if not self._confirmar_acao("Deseja excluir o usuário selecionado?", self.win_listar_usuarios):
             return
 
         try:
@@ -416,10 +601,7 @@ class SistemaFrotion:
         self.txt_novo_nome = self.builder_usuario.get_object("txt_novo_nome")
         self.txt_novo_email = self.builder_usuario.get_object("txt_novo_email")
         self.txt_nova_senha = self.builder_usuario.get_object("txt_nova_senha")
-        self.btn_salvar_usuario = self.builder_usuario.get_object(
-            "btn_salvar_usuario"
-        )
-
+        self.btn_salvar_usuario = self.builder_usuario.get_object("btn_salvar_usuario")
         self.win_criar_usuario.set_transient_for(self.win_login)
         self.btn_salvar_usuario.connect("clicked", self.salvar_usuario)
         self.win_criar_usuario.show_all()
@@ -428,7 +610,6 @@ class SistemaFrotion:
         nome = self.txt_novo_nome.get_text().strip()
         email = self.txt_novo_email.get_text().strip()
         senha = self.txt_nova_senha.get_text()
-
         if not nome or not email or not senha:
             self._mostrar_mensagem(
                 Gtk.MessageType.WARNING,
@@ -473,24 +654,14 @@ class SistemaFrotion:
 
     def _mostrar_mensagem(self, tipo, mensagem, janela_pai):
         dialogo = Gtk.MessageDialog(
-            transient_for=janela_pai,
-            flags=Gtk.DialogFlags.MODAL,
-            message_type=tipo,
-            buttons=Gtk.ButtonsType.OK,
-            text=mensagem,
-        )
+            transient_for=janela_pai, flags=Gtk.DialogFlags.MODAL, message_type=tipo,  buttons=Gtk.ButtonsType.OK, text=mensagem,)
         dialogo.run()
         dialogo.destroy()
 
     @staticmethod
     def _confirmar_acao(mensagem, janela_pai):
         dialogo = Gtk.MessageDialog(
-            transient_for=janela_pai,
-            flags=Gtk.DialogFlags.MODAL,
-            message_type=Gtk.MessageType.WARNING,
-            buttons=Gtk.ButtonsType.YES_NO,
-            text=mensagem,
-        )
+            transient_for=janela_pai, flags=Gtk.DialogFlags.MODAL, message_type=Gtk.MessageType.WARNING, buttons=Gtk.ButtonsType.YES_NO, text=mensagem,)
         resposta = dialogo.run()
         dialogo.destroy()
         return resposta == Gtk.ResponseType.YES

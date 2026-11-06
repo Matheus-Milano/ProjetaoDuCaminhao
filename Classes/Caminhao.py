@@ -5,7 +5,6 @@
 class Caminhao:
     def __init__(
         self,
-        id_caminhao=None,
         placa="",
         renavam="",
         marca="",
@@ -16,9 +15,9 @@ class Caminhao:
         km_atual=0,
         status="Disponível",
         motorista_responsavel_id=None,
+        id=None,
     ):
-        """Inicializa um objeto Caminhao com os atributos do DER."""
-        self.id = id_caminhao
+        self.id = id
         self.placa = placa
         self.renavam = renavam
         self.marca = marca
@@ -31,5 +30,4 @@ class Caminhao:
         self.motorista_responsavel_id = motorista_responsavel_id
 
     def __repr__(self):
-        """Retorna uma representação textual legível do caminhão."""
         return f"<Caminhao id={self.id} placa='{self.placa}' modelo='{self.modelo}'>"

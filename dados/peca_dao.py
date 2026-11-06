@@ -10,7 +10,7 @@ class PecaDAO:
         try:
             linhas = conexao.execute(
                 """
-                SELECT id, manutencao_id, nome, codigo, quantidade, valor_unitario
+                SELECT codigo, nome, quantidade, valor_unitario
                 FROM PecasReposicao
                 ORDER BY id ASC
                 """
@@ -24,7 +24,7 @@ class PecaDAO:
         try:
             linha = conexao.execute(
                 """
-                SELECT id, manutencao_id, nome, codigo, quantidade, valor_unitario
+                SELECT codigo, nome, quantidade, valor_unitario
                 FROM PecasReposicao WHERE id = ?
                 """,
                 (id_peca,),
@@ -41,12 +41,10 @@ class PecaDAO:
             cursor = conexao.execute(
                 """
                 INSERT INTO PecasReposicao (
-                    id, manutencao_id, nome, codigo, quantidade, valor_unitario
-                ) VALUES (?, ?, ?, ?, ?, ?)
+                    nome, codigo, quantidade, valor_unitario
+                ) VALUES (?, ?, ?, ?)
                 """,
                 (
-                    id_peca,
-                    peca.manutencao_id,
                     peca.nome,
                     peca.codigo,
                     peca.quantidade,
@@ -68,17 +66,15 @@ class PecaDAO:
             cursor = conexao.execute(
                 """
                 UPDATE PecasReposicao SET
-                    manutencao_id = ?, nome = ?, codigo = ?,
+                    nome = ?, codigo = ?,
                     quantidade = ?, valor_unitario = ?
                 WHERE id = ?
                 """,
                 (
-                    peca.manutencao_id,
                     peca.nome,
                     peca.codigo,
                     peca.quantidade,
                     peca.valor_unitario,
-                    peca.id,
                 ),
             )
             if cursor.rowcount == 0:
