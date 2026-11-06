@@ -69,27 +69,36 @@ class CaminhaoDAO:
 
     def inserir(self, caminhao: Caminhao):
         conexao = obter_conexao()
-        cursor = conexao.cursor()
-        query = """
-            INSERT INTO Caminhoes (placa, renavam, marca, modelo, ano_fabricacao, tipo_carroceria, carga_maxima_kg, km_atual, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """
-        cursor.execute(
-            query,
-            (
-                caminhao.placa,
-                caminhao.renavam,
-                caminhao.marca,
-                caminhao.modelo,
-                caminhao.ano_fabricacao,
-                caminhao.tipo_carroceria,
-                caminhao.carga_maxima_kg,
-                caminhao.km_atual,
-                caminhao.status,
-            ),
-        )
-        conexao.commit()
-        conexao.close()
+        try:
+            cursor = conexao.execute(
+                """
+                INSERT INTO Caminhoes (
+                    placa, renavam, marca, modelo, ano_fabricacao,
+                    tipo_carroceria, carga_maxima_kg, km_atual, status,
+                    motorista_responsavel_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    caminhao.placa,
+                    caminhao.renavam,
+                    caminhao.marca,
+                    caminhao.modelo,
+                    caminhao.ano_fabricacao,
+                    caminhao.tipo_carroceria,
+                    caminhao.carga_maxima_kg,
+                    caminhao.km_atual,
+                    caminhao.status,
+                    caminhao.motorista_responsavel_id,
+                ),
+            )
+            conexao.commit()
+            caminhao.id = cursor.lastrowid
+            return caminhao.id
+        except sqlite3.Error:
+            conexao.rollback()
+            raise
+        finally:
+            conexao.close()
 
     def excluir(self, id_caminhao: Caminhao.id_caminhao):
         conexao = obter_conexao()

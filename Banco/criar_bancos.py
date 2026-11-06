@@ -6,7 +6,40 @@ def inicializar_banco():
     conexao = sqlite3.connect(CAMINHO_BANCO)
     cursor = conexao.cursor()
 
-    cursor.execute('PRAGMA foreign_keys = ON;')
+    cursor.execute("PRAGMA foreign_keys = OFF;")
+
+    colunas_motoristas = {
+        linha[1] for linha in cursor.execute("PRAGMA table_info(Motoristas)")
+    }
+    if "perfil_id" in colunas_motoristas:
+        cursor.execute("""
+            CREATE TABLE Motoristas_nova (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome_completo VARCHAR(100) NOT NULL,
+                cpf VARCHAR(11) NOT NULL UNIQUE,
+                data_nascimento DATE NOT NULL,
+                telefone VARCHAR(15) NOT NULL,
+                cnh_numero VARCHAR(11) NOT NULL UNIQUE,
+                cnh_categoria VARCHAR(2) NOT NULL,
+                cnh_validade DATE NOT NULL,
+                data_admissao DATE NOT NULL,
+                status VARCHAR(20) NOT NULL
+            );
+        """)
+        if colunas_motoristas:
+            cursor.execute("""
+                INSERT INTO Motoristas_nova (
+                    id, nome_completo, cpf, data_nascimento, telefone,
+                    cnh_numero, cnh_categoria, cnh_validade, data_admissao, status
+                )
+                SELECT id, nome_completo, cpf, data_nascimento, telefone,
+                       cnh_numero, cnh_categoria, cnh_validade, data_admissao, status
+                FROM Motoristas;
+            """)
+            cursor.execute("DROP TABLE Motoristas;")
+        cursor.execute("ALTER TABLE Motoristas_nova RENAME TO Motoristas;")
+
+    cursor.execute("DROP TABLE IF EXISTS Perfis;")
 
     # Tabela de usuários
     cursor.execute("""
@@ -31,13 +64,7 @@ def inicializar_banco():
             cnh_categoria VARCHAR(2) NOT NULL,
             cnh_validade DATE NOT NULL,
             data_admissao DATE NOT NULL,
-            status VARCHAR(20) NOT NULL,
-            perfil_id INTEGER,
-
-            -- Definindo a chave estrangeira para o perfil do motorista
-            FOREIGN KEY (perfil_id) REFERENCES Usuários(id)
-                ON DELETE CASCADE
-                ON UPDATE CASCADE
+            status VARCHAR(20) NOT NULL
         );
     """)
 
@@ -71,7 +98,7 @@ def inicializar_banco():
             status_viagem VARCHAR(20) NOT NULL,
             caminhao_id INTEGER NOT NULL,
             motorista_id INTEGER NOT NULL,
-            entrega_id INTEGER NOT NULL,
+            entrega_id INTEGER,
 
             -- Definindo as chaves estrangeiras para caminhão
             FOREIGN KEY (caminhao_id) REFERENCES Caminhoes(id)
@@ -89,6 +116,38 @@ def inicializar_banco():
                 ON UPDATE CASCADE
         );
     """)
+
+    colunas_viagens = {
+        linha[1]: linha for linha in cursor.execute("PRAGMA table_info(Viagens)")
+    }
+    if colunas_viagens["entrega_id"][3]:
+        cursor.execute("""
+            CREATE TABLE Viagens_nova (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                data_chegada_prevista DATETIME NOT NULL,
+                status_viagem VARCHAR(20) NOT NULL,
+                caminhao_id INTEGER NOT NULL,
+                motorista_id INTEGER NOT NULL,
+                entrega_id INTEGER,
+                FOREIGN KEY (caminhao_id) REFERENCES Caminhoes(id)
+                    ON DELETE CASCADE ON UPDATE CASCADE,
+                FOREIGN KEY (motorista_id) REFERENCES Motoristas(id)
+                    ON DELETE CASCADE ON UPDATE CASCADE,
+                FOREIGN KEY (entrega_id) REFERENCES Entregas(id)
+                    ON DELETE CASCADE ON UPDATE CASCADE
+            );
+        """)
+        cursor.execute("""
+            INSERT INTO Viagens_nova (
+                id, data_chegada_prevista, status_viagem,
+                caminhao_id, motorista_id, entrega_id
+            )
+            SELECT id, data_chegada_prevista, status_viagem,
+                   caminhao_id, motorista_id, entrega_id
+            FROM Viagens;
+        """)
+        cursor.execute("DROP TABLE Viagens;")
+        cursor.execute("ALTER TABLE Viagens_nova RENAME TO Viagens;")
 
     # Tabela de entregas
     cursor.execute("""
@@ -115,12 +174,23 @@ def inicializar_banco():
         CREATE TABLE IF NOT EXISTS PecasReposicao (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome VARCHAR(60) NOT NULL,
+            codigo VARCHAR(20),
             quantidade INT NOT NULL,
-            valor_unitario DECIMAL(10, 2) NOT NULL
+            valor_unitario DECIMAL(10, 2) NOT NULL,
+            manutencao_id INTEGER
         );
     """)
 
+    colunas_pecas = {
+        linha[1] for linha in cursor.execute("PRAGMA table_info(PecasReposicao)")
+    }
+    if "codigo" not in colunas_pecas:
+        cursor.execute("ALTER TABLE PecasReposicao ADD COLUMN codigo VARCHAR(20);")
+    if "manutencao_id" not in colunas_pecas:
+        cursor.execute("ALTER TABLE PecasReposicao ADD COLUMN manutencao_id INTEGER;")
+
     conexao.commit()
+    cursor.execute("PRAGMA foreign_keys = ON;")
     conexao.close()
 
 if __name__ == "__main__":

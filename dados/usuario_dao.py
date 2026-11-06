@@ -6,7 +6,7 @@ import sqlite3
 from Banco.conector_do_banco import obter_conexao
 
 class UsuarioDAO:
-    def criar(self, nome: str, email, senha):
+    def criar(self, nome: str, email: str, senha):
         salt = secrets.token_bytes(16)
         senha_hash = hashlib.pbkdf2_hmac(
             "sha256", senha.encode("utf-8"), salt, 310_000
